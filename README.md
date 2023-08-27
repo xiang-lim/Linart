@@ -129,4 +129,30 @@ The results are disappointing...
 ![String_Art_Attempt_1.png](Attempts%2FAttempt1%2FVariation_5%2FString_Art_Attempt_1.png)
 </details>
 </blockquote>
+
+<blockquote>
+
+**Second Approach**
+
+Develop circular points by taking the diagonal length of the image as the diameter. These circular points
+will be anchors for the lines representing the points. The places where the lines are tangent to will 
+indicate the edge points.
+
+However, this method is disappointing. Each point cannot be represented by a single line that is tangent
+to said point.
+
+<details>
+<summary>Outcome</summary>
+
+![String_Art_Attempt_2.png](Attempts%2FAttempt2%2FVariation_1%2FString_Art_Attempt_2.png)
+</details>
+
+</blockquote>
+
 ---
+
+Note: From this project noticed a few things
+1. Depth perception issue: Using an image, it's hard for the computer to determine which sections of the image is
+more "in front of" the other .
+2. Hard to define which point is on the edge and which are enclosed or excluded by the "edge". Perhaps there are 
+other factors needed to be considered to determine the edge.

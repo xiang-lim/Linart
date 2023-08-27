@@ -1,3 +1,2 @@
-
-attempt_num = "1"
-variation = "5"
+attempt_num = "2"
+variation = "1"

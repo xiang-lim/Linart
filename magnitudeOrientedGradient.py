@@ -1,5 +1,7 @@
 import math
 
+import numpy as np
+
 
 def magnitude_calculation(tc, bc, lc, rc):
     return ((tc - bc) ** 2 + (rc - lc) ** 2) ** 0.5
@@ -12,6 +14,7 @@ def orientation_calculation(tc, bc, lc, rc):
 def gradient_calculation(image_array):
     m_o_np_array = []
     magnitude_list = []
+    image_array = np.flip(image_array, 0)
     for y in range(1, image_array.shape[0] - 1):
         horizontal_m_o_array = []
         for x in range(1, image_array.shape[1] - 1):

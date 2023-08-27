@@ -25,7 +25,13 @@ def visualize_string_art(magnitude_orientation_matrix):
     plt.figure(figsize=(7, 7))
     plt.axis([0, 640, 0, 640])
     for line in list_of_lines:
-        print(line)
         plt.plot(line[0], line[1], linewidth=1, alpha=0.01)
-    plt.savefig("Attempts/Attempt" + attempt_num + "/Variation_" + variation + "/String_Art_Attempt_" + attempt_num)
+    plt.savefig(
+        "Attempts/Attempt"
+        + attempt_num
+        + "/Variation_"
+        + variation
+        + "/String_Art_Attempt_"
+        + attempt_num
+    )
     plt.show()

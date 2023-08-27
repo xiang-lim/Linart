@@ -6,7 +6,7 @@ from PIL import Image
 
 from magnitudeOrientedGradient import gradient_calculation
 from processing import visualize_plot_points, m_o_threshold_filter
-from stringArt import visualize_string_art
+from stringArtV2 import visualize_string_art_v2
 
 
 def convert_to_greyscale():
@@ -31,4 +31,4 @@ if __name__ == "__main__":
         m_o_matrix_filtered, affected_point_h, affected_point_v = m_o_threshold_filter(
             m_o_matrix, m_array)
         visualize_plot_points(affected_point_h, affected_point_v)
-        visualize_string_art(m_o_matrix_filtered)
+        visualize_string_art_v2(m_o_matrix_filtered)

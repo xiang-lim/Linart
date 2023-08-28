@@ -37,6 +37,22 @@ class StringArt:
             list_coord.append((y, x))
         return list_coord
 
+    def determine_line_pixel_value(self, lower_bound, value, vector_of_string):
+        if lower_bound <= value < lower_bound + 1.5:
+            if value // 1 == lower_bound:
+                vector_of_string.append(
+                    (value + self.string_thickness / 2 - lower_bound)
+                    * self.string_weight
+                )
+            else:
+                vector_of_string.append(
+                    ((lower_bound - (value - self.string_thickness / 2)) + 1)
+                    * self.string_weight
+                )
+            return
+        vector_of_string.append(0)
+        return
+
     def cal_vector_of_lines_on_image(self, point_of_concern, other_point):
         straight_value_x = 0
         c = 0
@@ -77,77 +93,23 @@ class StringArt:
             ):
                 if not is_skip:
                     if is_straight_line(point_of_concern, other_point):
-                        if col_num <= straight_value_x < col_num + 1.5:
-                            if straight_value_x // 1 == col_num:
-                                vector_of_string.append(
-                                    (
-                                        straight_value_x
-                                        + self.string_thickness / 2
-                                        - col_num
-                                    )
-                                    * self.string_weight
-                                )
-                            else:
-                                vector_of_string.append(
-                                    (
-                                        (
-                                            col_num
-                                            - (
-                                                straight_value_x
-                                                - self.string_thickness / 2
-                                            )
-                                        )
-                                        + 1
-                                    )
-                                    * self.string_weight
-                                )
-                            continue
-                        vector_of_string.append(0)
+                        self.determine_line_pixel_value(
+                            col_num, straight_value_x, vector_of_string
+                        )
                         continue
                     elif is_flat:
                         y_value = cal_y_value(col_num, c, gradient)
-                        if row_num <= y_value < row_num + 1.5:
-                            if y_value // 1 == row_num:
-                                vector_of_string.append(
-                                    (y_value + self.string_thickness / 2 - row_num) * self.string_weight)
-                            else:
-                                vector_of_string.append(
-                                    (
-                                        (
-                                            row_num
-                                            - (y_value - self.string_thickness / 2)
-                                        )
-                                        + 1
-                                    )
-                                    * self.string_weight
-                                )
-
-                            continue
-                        vector_of_string.append(0)
+                        self.determine_line_pixel_value(
+                            row_num, y_value, vector_of_string
+                        )
                         continue
                     else:
                         y_value = cal_y_value(col_num, c, gradient)
-                        if row_num <= y_value < row_num + 1.5:
-                            if y_value // 1 == row_num:
-                                vector_of_string.append(
-                                    (y_value + self.string_thickness / 2 - row_num) * self.string_weight)
-                            else:
-                                vector_of_string.append(
-                                    (
-                                        (
-                                            row_num
-                                            - (y_value - self.string_thickness / 2)
-                                        )
-                                        + 1
-                                    )
-                                    * self.string_weight
-                                )
-                            continue
-                        vector_of_string.append(0)
+                        self.determine_line_pixel_value(
+                            row_num, y_value, vector_of_string
+                        )
                         continue
                 vector_of_string.append(0)
-        if len(vector_of_string) != 409600:
-            print("WARNING")
         return vector_of_string
 
     def cal_one_vs_all_point(self, input_tuple):
@@ -162,7 +124,6 @@ class StringArt:
     def cal_each_point_vectors(self):
         num_of_points_considered = 0
         vector_dictionary = {}
-        pinV = []
         for i in range(0, len(self.circular_coord)):
             point_of_concern = self.circular_coord[i]
             num_of_points_considered += 1
@@ -183,7 +144,6 @@ class StringArt:
             for result in results:
                 vector_dictionary[(point_of_concern, result[0])] = result[1]
                 vector_dictionary[(result[0], point_of_concern)] = result[1]
-                pinV.append(result[1])
         self.apvd = vector_dictionary
 
     def convert_img_to_vector(self):

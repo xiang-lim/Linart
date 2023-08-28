@@ -156,3 +156,6 @@ Note: From this project noticed a few things
 more "in front of" the other .
 2. Hard to define which point is on the edge and which are enclosed or excluded by the "edge". Perhaps there are 
 other factors needed to be considered to determine the edge.
+3. Multi-Processing vs Multi-Threading
+    - Multi-Processing: Better for more intense cpu
+    - Multi-Threading: Better for IO

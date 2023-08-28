@@ -2,11 +2,11 @@ import os
 import re
 
 import matplotlib.image as mpimg
+import numpy as np
 from PIL import Image
 
-from magnitudeOrientedGradient import gradient_calculation
-from processing import visualize_plot_points, m_o_threshold_filter
-from stringArtV2 import visualize_string_art_v2
+from Math import cal_diameter_of_image
+from generateStringArt import StringArt
 
 
 def convert_to_greyscale():
@@ -21,14 +21,16 @@ def convert_to_greyscale():
             greyscale_dir_list.append(new_file_loc)
 
 
-if __name__ == "__main__":
+def determine_diameter_of_image(height, width):
+    return (height**2 + width**2) ** 0.5
 
+
+if __name__ == "__main__":
     greyscale_dir_list = []
     convert_to_greyscale()
     for greyscale_image in greyscale_dir_list:
         img = mpimg.imread(greyscale_image)
-        m_o_matrix, m_array = gradient_calculation(img)
-        m_o_matrix_filtered, affected_point_h, affected_point_v = m_o_threshold_filter(
-            m_o_matrix, m_array)
-        visualize_plot_points(affected_point_h, affected_point_v)
-        visualize_string_art_v2(m_o_matrix_filtered)
+        img = np.flip(img, 0)
+        diameter = cal_diameter_of_image(img.shape[0], img.shape[1])
+        string_art = StringArt(img, diameter)
+        string_art.generate_string_art()

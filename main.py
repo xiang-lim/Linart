@@ -22,7 +22,7 @@ def convert_to_greyscale():
 
 
 def determine_diameter_of_image(height, width):
-    return (height**2 + width**2) ** 0.5
+    return (height ** 2 + width ** 2) ** 0.5
 
 
 if __name__ == "__main__":

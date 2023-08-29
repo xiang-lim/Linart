@@ -1,10 +1,9 @@
 import itertools
 import math
-from concurrent.futures import ProcessPoolExecutor
-from multiprocessing.dummy import Pool
-
-import matplotlib.pyplot as plt
+import multiprocessing
+from multiprocessing import Pool
 import numpy as np
+from matplotlib import pyplot as plt
 
 from Math import cal_gradient, calculate_y_intercept, cal_y_value, is_straight_line
 
@@ -22,16 +21,24 @@ class StringArt:
         self.width_offset = self.radius - self.initial_width / 2
         self.max_height = self.height_offset * 2 + self.initial_height
         self.max_width = self.width_offset * 2 + self.initial_width
-        self.string_weight = 5
+        self.string_weight = 0.2
         self.string_thickness = 1  # Unit in pixel
+        self.initial_circular_coord = self.determine_360_points()
         self.circular_coord = self.determine_360_points()
-        self.max_workers = 6
-        self.number_of_thread = 40
-        self.apvd = {}
+        self.max_workers = 10
+        self.current_A_coord = []
+        self.acd = {}
+        self.max_x_vector = []
+
+    def greedy_algorithm(self, A):
+        print(A.shape)
+        x_vector = np.dot(np.linalg.pinv(A), self.resultant_vector)
+        x_vector = x_vector.tolist()
+        return x_vector.index(max(x_vector))
 
     def determine_360_points(self):
         list_coord = []
-        for i in range(0, 360, 5):
+        for i in range(0, 360, 15):
             y = self.radius * math.sin(i * math.pi / 180) + self.radius
             x = self.radius * math.cos(i * math.pi / 180) + self.radius
             list_coord.append((y, x))
@@ -41,12 +48,12 @@ class StringArt:
         if lower_bound <= value < lower_bound + 1.5:
             if value // 1 == lower_bound:
                 vector_of_string.append(
-                    (value + self.string_thickness / 2 - lower_bound)
+                    ((value - lower_bound) + (self.string_thickness / 2))
                     * self.string_weight
                 )
             else:
                 vector_of_string.append(
-                    ((lower_bound - (value - self.string_thickness / 2)) + 1)
+                    ((lower_bound - (value - (self.string_thickness / 2))) + 1)
                     * self.string_weight
                 )
             return
@@ -82,14 +89,14 @@ class StringArt:
         vector_of_string = []
         is_flat = gradient == 0
         for row_num in range(
-            int((self.max_height - self.height_offset) // 1),
-            int(self.height_offset // 1),
-            -1,
+                int((self.max_height - self.height_offset) // 1),
+                int(self.height_offset // 1),
+                -1,
         ):
             is_skip = row_num > cal_max_y
             for col_num in range(
-                int(self.width_offset // 1),
-                int((self.max_width - self.width_offset) // 1),
+                    int(self.width_offset // 1),
+                    int((self.max_width - self.width_offset) // 1),
             ):
                 if not is_skip:
                     if is_straight_line(point_of_concern, other_point):
@@ -112,148 +119,85 @@ class StringArt:
                 vector_of_string.append(0)
         return vector_of_string
 
-    def cal_one_vs_all_point(self, input_tuple):
-        other_point_index = input_tuple[0]
-        point_of_concern = input_tuple[1]
+    def cal_one_vs_all_point(self, other_point_index, point_of_concern):
         other_point = self.circular_coord[other_point_index]
-        return (
-            other_point,
-            self.cal_vector_of_lines_on_image(point_of_concern, other_point),
-        )
-
-    def cal_each_point_vectors(self):
-        num_of_points_considered = 0
-        vector_dictionary = {}
-        for i in range(0, len(self.circular_coord)):
-            point_of_concern = self.circular_coord[i]
-            num_of_points_considered += 1
-            print(
-                "Calculating "
-                + str(i)
-                + " of "
-                + str(len(self.circular_coord))
-                + " points vector"
+        if other_point != point_of_concern:
+            return (
+                other_point,
+                self.cal_vector_of_lines_on_image(point_of_concern, other_point),
             )
-            with ProcessPoolExecutor(max_workers=self.max_workers) as executor:
-                results = list(
-                    executor.map(
-                        self.cal_one_vs_all_point, zip(
-                            range(
-                                num_of_points_considered, len(
-                                    self.circular_coord)), itertools.repeat(point_of_concern), ), ))
-            for result in results:
-                vector_dictionary[(point_of_concern, result[0])] = result[1]
-                vector_dictionary[(result[0], point_of_concern)] = result[1]
-        self.apvd = vector_dictionary
+
+    def cal_each_point_vectors(self, point_of_concern):
+        matrix_of_lines = []
+        print("Initialize matrix")
+        with Pool(processes=self.max_workers) as executor:
+            results = executor.starmap(
+                self.cal_one_vs_all_point, zip(
+                    range(
+                        0, len(self.circular_coord)), itertools.repeat(point_of_concern), ), )
+        acd = {}
+        current_coord = []
+        for result in results:
+            if result:
+                matrix_of_lines.append(np.array([result[1]]).transpose())
+                acd[len(current_coord)] = np.array([result[1]]).transpose()
+                current_coord.append(result[0])
+        print("Returning matrix")
+        self.current_A_coord = current_coord
+        self.acd = acd
+        matrix = np.array([])
+        for index in range(0, len(matrix_of_lines)):
+            if index == 0:
+                matrix = matrix_of_lines[0]
+            else:
+                matrix += matrix
+        print(min(matrix))
+        return np.concatenate(matrix_of_lines, axis=1)
 
     def convert_img_to_vector(self):
         print("Converting image into a vector")
-        print(self.image.shape)
-        return np.concatenate(np.array(self.image))
+        return np.array([np.concatenate(self.image)]).transpose()/25.5
 
-    def calculate_resultant_vector(self, input_tuple):
-        other_point_index = input_tuple[0]
-        point_of_concern = input_tuple[1]
-        min_value = input_tuple[2]
-        max_value = input_tuple[3]
-        other_point = self.circular_coord[other_point_index]
-        if other_point != point_of_concern:
-            current_resultant_vector = self.resultant_vector.copy()
-            current_vector = self.apvd[(point_of_concern, other_point)]
-            weight = []
-            for v1 in current_resultant_vector:
-                weight.append((v1 - min_value) / (max_value / min_value))
-            weight_based = np.multiply(current_vector, weight)
-            resultant_vector = np.subtract(
-                current_resultant_vector, current_vector)
-
-            sum_of_errors = sum(
-                np.subtract(
-                    current_resultant_vector,
-                    weight_based))
-            return ((point_of_concern, other_point),
-                    sum_of_errors, resultant_vector)
-        return ()
-
-    def calculate_best_possible_line(self, point_of_concern):
-        print("Calculating best possible line, sum of error: " +
-              str(self.sum_of_error()))
-        all_point_sum_of_errors = {}
-        resultant_vector_dict = {}
-        max_value = max(self.resultant_vector)
-        min_value = min(self.resultant_vector)
-        with Pool() as executor:
-            results = executor.map(
-                self.calculate_resultant_vector,
-                zip(
-                    range(0, len(self.circular_coord)),
-                    itertools.repeat(point_of_concern),
-                    itertools.repeat(min_value),
-                    itertools.repeat(max_value),
-                ),
-            )
-
-        for result in results:
-            if result:
-                coordinate = result[0]
-                other_point = result[0][1]
-                resultant_vector_dict[other_point] = result[2]
-                all_point_sum_of_errors[coordinate] = result[1]
-
-        all_point_sum_of_errors = {
-            k: v
-            for k, v in sorted(
-                all_point_sum_of_errors.items(), key=lambda item: item[1]
-            )
-        }
-        point = next(iter(all_point_sum_of_errors))
-
-        self.resultant_vector = resultant_vector_dict[point[1]]
-
-        return point
-
-    def sum_of_error(self):
-        sum_of_error = 0
-        for scalar in self.resultant_vector:
-            sum_of_error += scalar
-        return sum_of_error
-
-    def is_complete(self):
-
-        return self.sum_of_error() < 0
-
-    def aggregate_lines(self):
-        print("Aggregate_lines")
-        list_of_line_combination = []
-        next_coordinates = self.circular_coord[0]
-        while not self.is_complete():
-            best_possible_line = self.calculate_best_possible_line(
-                next_coordinates)
-            list_of_line_combination.append(best_possible_line)
-            next_coordinates = best_possible_line[1]
-            print(next_coordinates)
+    def organize_points_calculation(self, point_of_concern):
+        list_of_coordinates = []
+        previous_coord = None
+        for i in range(0, 25):
+            is_matrix_not_empty=True
+            a = 0
+            while is_matrix_not_empty:
+                self.circular_coord = self.initial_circular_coord.copy()
+                self.circular_coord.remove(point_of_concern)
+                if previous_coord is not None:
+                    self.circular_coord.remove(previous_coord)
+                matrix_a = self.cal_each_point_vectors(point_of_concern)
+                coord_index = self.greedy_algorithm(matrix_a)
+                previous_coord = point_of_concern
+                next_coord = self.current_A_coord[coord_index]
+                print((point_of_concern, next_coord))
+                list_of_coordinates.append((point_of_concern, next_coord))
+                point_of_concern = next_coord
+                self.resultant_vector = np.subtract(self.resultant_vector, self.acd[coord_index])
+                is_matrix_not_empty = matrix_a.shape[1] > a
+                a+=1
             list_of_coordinate = []
-            if len(list_of_line_combination) % 25 == 0:
-                for pair_of_combination in list_of_line_combination:
-                    coord1 = pair_of_combination[0]
-                    coord2 = pair_of_combination[1]
-                    list_of_coordinate.append(
-                        ([coord1[1], coord2[1]], [coord1[0], coord2[0]])
-                    )
-                plt.figure(
-                    figsize=(
-                        (self.diameter // 100) + 3,
-                        (self.diameter // 100) + 3))
-                for line in list_of_coordinate:
-                    plt.plot(line[0], line[1], linewidth=1, alpha=0.01)
-                plt.show()
-        return list_of_line_combination
+            for coord1, coord2 in list_of_coordinates:
+                list_of_coordinate.append(
+                    ([coord1[1], coord2[1]], [coord1[0], coord2[0]]))
+            plt.figure(
+                figsize=(
+                    (self.diameter // 100) + 3,
+                    (self.diameter // 100) + 3))
+            for line in list_of_coordinate:
+                plt.plot(line[0], line[1], 'k', linewidth=1, alpha=0.1)
+            plt.savefig("Dump/"+str(i))
+            plt.show()
+        return list_of_coordinates
 
     def generate_string_art(self):
-        self.cal_each_point_vectors()
-        list_of_line_combination = self.aggregate_lines()
+        list_of_coordinates = self.organize_points_calculation(self.circular_coord[1])
+        print(list_of_coordinates)
         list_of_coordinate = []
-        for pair_of_combination in list_of_line_combination:
+        for pair_of_combination in list_of_coordinates:
             coord1 = pair_of_combination[0]
             coord2 = pair_of_combination[1]
             list_of_coordinate.append(
@@ -263,7 +207,6 @@ class StringArt:
                 (self.diameter // 100) + 3,
                 (self.diameter // 100) + 3))
         for line in list_of_coordinate:
-            plt.plot(line[0], line[1], linewidth=1, alpha=0.01)
+            plt.plot(line[0], line[1], linewidth=1, alpha=0.1)
         plt.savefig("Test")
-
         plt.show()

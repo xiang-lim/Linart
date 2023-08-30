@@ -6,14 +6,14 @@ import numpy as np
 from PIL import Image
 
 from Math import cal_diameter_of_image
-from generateStringArt import StringArt
+from stringArt import StringArt
 
 
 def convert_to_greyscale():
     directory_name = "Input"
     greyscale_dir = "Greyscale/"
     for file_name in os.listdir(directory_name):
-        if re.search(r"\.(jpeg|jpg|png)$", file_name):
+        if re.search(r"\.(jpeg|jpg)$", file_name):
             file_path = directory_name + "/" + file_name
             new_file_loc = greyscale_dir + file_name
             image = Image.open(file_path).convert("L")
@@ -22,7 +22,7 @@ def convert_to_greyscale():
 
 
 def determine_diameter_of_image(height, width):
-    return (height ** 2 + width ** 2) ** 0.5
+    return (height**2 + width**2) ** 0.5 + 1
 
 
 if __name__ == "__main__":
@@ -30,7 +30,9 @@ if __name__ == "__main__":
     convert_to_greyscale()
     for greyscale_image in greyscale_dir_list:
         img = mpimg.imread(greyscale_image)
+        img = np.invert(img)
         img = np.flip(img, 0)
         diameter = cal_diameter_of_image(img.shape[0], img.shape[1])
-        string_art = StringArt(img, diameter)
-        string_art.generate_string_art()
+        string_art = StringArt(img, diameter, 1)
+        string_art.set_up_area_of_line_calculation(
+            string_art.list_of_boundary[0])
